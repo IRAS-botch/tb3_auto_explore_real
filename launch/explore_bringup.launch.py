@@ -104,7 +104,7 @@ def generate_launch_description():
     )
     ld.add_action(
         DeclareLaunchArgument(
-            "use_rviz", default_value="true", description="Start RViz2 automatically"
+            "use_rviz", default_value="false", description="Start RViz2 automatically"
         )
     )
     ld.add_action(
