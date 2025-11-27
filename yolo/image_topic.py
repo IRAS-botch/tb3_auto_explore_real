@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+import importlib.util
+import sys
+
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
@@ -11,6 +14,16 @@ import time
 import os
 from pathlib import Path
 from rclpy.qos import qos_profile_sensor_data
+
+# Fail fast with a clear message when the YOLO dependency is missing instead of
+# crashing the entire bringup launch.
+if importlib.util.find_spec("ultralytics") is None:
+    print(
+        "[image_topic] ultralytics package not found. "
+        "Launch with 'use_yolo:=true' only after installing it (pip install ultralytics)."
+    )
+    sys.exit(1)
+
 from ultralytics import YOLO
 
 # ==========================================

@@ -18,6 +18,7 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time", default="false")
     slam = LaunchConfiguration("slam", default="true")
     use_rviz = LaunchConfiguration("use_rviz", default="false")
+    use_yolo = LaunchConfiguration("use_yolo", default="false")
 
     # 내 패키지 경로
     tb3_auto_dir = get_package_share_directory("tb3_auto_explore_real")
@@ -89,7 +90,11 @@ def generate_launch_description():
     # 설치된 패키지 공유 디렉터리에서 스크립트 경로를 조회하여 하드코딩 경로 문제를 방지한다.
     yolo_script_path = os.path.join(tb3_auto_dir, "yolo", "image_topic.py")
 
-    yolo_node = ExecuteProcess(cmd=["python3", yolo_script_path], output="screen")
+    yolo_node = ExecuteProcess(
+        cmd=["python3", yolo_script_path],
+        output="screen",
+        condition=IfCondition(use_yolo),
+    )
 
     # === 8. LaunchDescription 구성 ===
     ld = LaunchDescription()
@@ -112,6 +117,13 @@ def generate_launch_description():
             "params_file",
             default_value=default_param_file,
             description="Full path to the ROS2 parameters file to use for all launched nodes",
+        )
+    )
+    ld.add_action(
+        DeclareLaunchArgument(
+            "use_yolo",
+            default_value="false",
+            description="Enable YOLO cube detection (requires ultralytics dependency)",
         )
     )
 

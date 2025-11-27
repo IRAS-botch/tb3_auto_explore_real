@@ -21,6 +21,7 @@ from geometry_msgs.msg import PoseStamped, Point
 from nav_msgs.msg import OccupancyGrid, Path
 from nav2_msgs.action import NavigateToPose
 from nav2_msgs.srv import ClearEntireCostmap
+from action_msgs.msg import GoalStatus
 
 # [삭제] Clock 메시지는 더 이상 필요 없음
 # from rosgraph_msgs.msg import Clock
@@ -131,6 +132,8 @@ class FrontierExplorer(Node):
         self.blacklist_cells: Set[Tuple[int, int]] = set()
         self.start_pose = None
         self.going_home = False
+        self.current_target_world: Optional[Tuple[float, float]] = None
+        self._goal_forced_finished = False
 
         # [수정] 시간 측정 변수 초기화 (ROS Clock 객체 사용)
         self.mission_start_time = None
@@ -296,6 +299,18 @@ class FrontierExplorer(Node):
                     pass
                 self.current_goal_future = None
                 self._goal_handle = None
+        if (
+            self._goal_handle is not None
+            and self.current_target_world is not None
+            and not self._goal_forced_finished
+        ):
+            pose = self.get_robot_pose()
+            if pose:
+                rx, ry, _ = pose
+                tx, ty = self.current_target_world
+                dist = math.hypot(tx - rx, ty - ry)
+                if dist < 0.35:
+                    self._finish_current_goal_as_reached(dist)
 
     def get_robot_pose(self):
         try:
@@ -695,6 +710,7 @@ class FrontierExplorer(Node):
         self.current_goal_future = self.nav_client.send_goal_async(goal)
         self.current_goal_future.add_done_callback(self._goal_response)
         self.goal_start_time = self.get_clock().now()
+        self.current_target_world = (x, y)
 
     def _goal_response(self, fut):
         h = fut.result()
@@ -718,14 +734,19 @@ class FrontierExplorer(Node):
             return
         result = fut.result()
         status = result.status
+        last_target = self.current_target_grid
+        was_forced = self._goal_forced_finished
+        self._goal_forced_finished = False
+
         self.get_logger().info(f"Goal finished: {status}")
         self.current_goal_future = None
         self._goal_handle = None
         self.current_target_grid = None
+        self.current_target_world = None
         self.path_update_count = 0
 
         if self.going_home:
-            if status == 4:
+            if status == GoalStatus.STATUS_SUCCEEDED or was_forced:
                 self.get_logger().info(
                     "Mission Complete (Arrived Home). Saving Map & Pausing SLAM."
                 )
@@ -742,9 +763,33 @@ class FrontierExplorer(Node):
                 else:
                     self.get_logger().error("Start pose lost! Saving anyway.")
                     self.save_and_pause_slam()
+            return
 
-        elif self._last_map:
-            self.plan_and_go(self._last_map)
+        if status == GoalStatus.STATUS_SUCCEEDED or was_forced:
+            if was_forced:
+                self.get_logger().info(
+                    "[FastComplete] Close to target. Continuing to next frontier."
+                )
+            if self._last_map:
+                self.plan_and_go(self._last_map)
+        else:
+            if last_target:
+                self.blacklist_cells.add(last_target)
+            self.force_long_range = True
+            self.clear_costmaps()
+            if self._last_map:
+                self.plan_and_go(self._last_map, use_relaxation=True)
+
+    def _finish_current_goal_as_reached(self, dist):
+        self.get_logger().info(
+            f"[FastComplete] Distance {dist:.2f}m < 0.35m, forcing completion."
+        )
+        self._goal_forced_finished = True
+        if self._goal_handle:
+            try:
+                self._goal_handle.cancel_goal_async()
+            except Exception:
+                pass
 
 
 def main():
