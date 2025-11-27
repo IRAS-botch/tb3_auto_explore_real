@@ -55,12 +55,12 @@ class FrontierExplorer(Node):
         self.declare_parameter("max_goal_attempts_per_frontier", 2)
 
         # [설정] 맵 저장 경로
-        self.save_dir = "/home/ubuntu/tb3_auto_explore_real/map"
+        self.save_dir = os.path.expanduser("~/tb3_auto_explore_real/map")
         self.map_name_base = "mission_map"
         self.full_map_path = os.path.join(self.save_dir, self.map_name_base)
 
         # 큐브 좌표 파일 경로
-        self.cube_log_path = "/home/ubuntu/tb3_auto_explore_real/map/found_cubes.txt"
+        self.cube_log_path = os.path.join(self.save_dir, "found_cubes.txt")
         # CSV 저장 경로
         self.csv_output_path = os.path.join(self.save_dir, "found_cubes.csv")
 
@@ -78,8 +78,8 @@ class FrontierExplorer(Node):
         ).value
 
         qos = QoSProfile(
-            depth=1,
-            reliability=ReliabilityPolicy.BEST_EFFORT,
+            depth=5,
+            reliability=ReliabilityPolicy.RELIABLE,
             history=HistoryPolicy.KEEP_LAST,
         )
         self.map_sub = self.create_subscription(
@@ -97,6 +97,9 @@ class FrontierExplorer(Node):
         self.buffer = Buffer()
         self.tf_listener = TransformListener(self.buffer, self)
         self.nav_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
+        self.nav_server_ready = False
+        self._nav_connect_failures = 0
+        self._nav_not_ready_warned = False
         self.save_map_client = self.create_client(SaveMap, "/slam_toolbox/save_map")
         self.pause_slam_client = self.create_client(
             Pause, "/slam_toolbox/pause_new_measurements"
@@ -133,10 +136,35 @@ class FrontierExplorer(Node):
 
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
+        if not os.path.exists(self.cube_log_path):
+            with open(self.cube_log_path, "w") as cube_log:
+                cube_log.write("Timestamp, Target, X, Y\n")
 
         # 1초마다 실행되는 타이머 (여기서 시간 체크 함)
         self.timer = self.create_timer(1.0, self.watchdog_cb)
+        self.nav_wait_timer = self.create_timer(0.5, self._check_nav_action_server)
         self.get_logger().info(f"Explorer Started. Output Dir: {self.save_dir}")
+
+    def _check_nav_action_server(self):
+        if self.nav_server_ready:
+            return
+
+        if self.nav_client.wait_for_server(timeout_sec=0.1):
+            self.nav_server_ready = True
+            self.get_logger().info("NavigateToPose action server is ready.")
+            self._nav_not_ready_warned = False
+            if self.going_home and self.start_pose and self.current_goal_future is None:
+                x, y, yaw = self.start_pose
+                self.get_logger().info(
+                    "Navigation server ready. Sending pending return-home goal."
+                )
+                self.send_goal(x, y, yaw)
+        else:
+            self._nav_connect_failures += 1
+            if self._nav_connect_failures % 10 == 0:
+                self.get_logger().warn(
+                    "Waiting for navigate_to_pose action server... (still not ready)"
+                )
 
     def clear_costmaps(self):
         self.get_logger().warn("!!! CLEARING COSTMAPS TO FIX PATH PLANNING !!!")
@@ -446,6 +474,11 @@ class FrontierExplorer(Node):
             )
 
         x, y, yaw = self.start_pose
+        if not self.nav_server_ready:
+            self.get_logger().warn(
+                "Navigation server not ready yet. Will go home once it becomes available."
+            )
+            return
         self.send_goal(x, y, yaw)
 
     def find_frontiers(
@@ -565,8 +598,16 @@ class FrontierExplorer(Node):
                 self.get_logger().warn("Recursion limit hit 20+. RETURNING HOME.")
                 self.go_home()
             return
-        if not self.nav_client.server_is_ready() or self.going_home:
+        if self.going_home:
             return
+        if not self.nav_server_ready:
+            if not self._nav_not_ready_warned:
+                self.get_logger().warn(
+                    "Navigation action server not ready yet. Holding planning."
+                )
+                self._nav_not_ready_warned = True
+            return
+        self._nav_not_ready_warned = False
 
         min_f = max(1, self.min_frontier - (1 if use_relaxation else 0))
         frontiers = self.find_frontiers(grid, min_f)

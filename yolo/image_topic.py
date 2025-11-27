@@ -9,6 +9,7 @@ import numpy as np
 import cv2
 import time
 import os
+from pathlib import Path
 from rclpy.qos import qos_profile_sensor_data
 from ultralytics import YOLO
 
@@ -28,7 +29,9 @@ BACKUP_DURATION = abs(BACKUP_DISTANCE / BACKUP_SPEED)
 CENTER_MARGIN = 60
 
 # [설정] 저장 파일 경로 & 오프셋 거리
-SAVE_FILE_NAME = "/home/ubuntu/tb3_auto_explore_real/found_cubes.txt"
+BASE_SAVE_DIR = Path.home() / "tb3_auto_explore_real"
+BASE_SAVE_DIR.mkdir(parents=True, exist_ok=True)
+SAVE_FILE_NAME = str(BASE_SAVE_DIR / "found_cubes.txt")
 CUBE_OFFSET_DIST = 0.20  # 로봇 중심에서 큐브까지의 거리 (m)
 
 # ==========================================
@@ -73,9 +76,8 @@ def rect_iou(a, b):
 class ImageViewer(Node):
     def __init__(self):
         super().__init__("image_viewer")
-        self.model = YOLO(
-            "/home/ubuntu/tb3_auto_explore_real/yolo/YOLOCUBE_ClassModified.pt"
-        )
+        model_path = Path(__file__).resolve().parent / "YOLOCUBE_ClassModified.pt"
+        self.model = YOLO(str(model_path))
 
         self.sub = self.create_subscription(
             Image, "/rgb", self.callback, qos_profile_sensor_data
