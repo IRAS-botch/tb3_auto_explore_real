@@ -49,6 +49,7 @@ class FrontierExplorer(Node):
         self.declare_parameter("global_frame", "map")
         self.declare_parameter("robot_base_frame", "base_link")
         self.declare_parameter("min_frontier_size", 3)
+        self.declare_parameter("min_goal_distance", 0.5)
         self.declare_parameter("goal_clearance_cells", 1)
         self.declare_parameter("goal_timeout_sec", 30.0)
         self.declare_parameter("blacklist_clear_radius", 0.5)
@@ -68,6 +69,7 @@ class FrontierExplorer(Node):
         self.global_frame = self.get_parameter("global_frame").value
         self.base_frame = self.get_parameter("robot_base_frame").value
         self.min_frontier = self.get_parameter("min_frontier_size").value
+        self.min_goal_distance = self.get_parameter("min_goal_distance").value
         self.clearance = self.get_parameter("goal_clearance_cells").value
         self.goal_timeout_sec = self.get_parameter("goal_timeout_sec").value
         self.blacklist_clear_radius_m = self.get_parameter(
@@ -233,7 +235,7 @@ class FrontierExplorer(Node):
                 )
                 if self.current_target_grid:
                     self.blacklist_cells.add(self.current_target_grid)
-                self.force_long_range = False
+                self.force_long_range = True
                 try:
                     self._goal_handle.cancel_goal_async()
                 except:
@@ -287,7 +289,7 @@ class FrontierExplorer(Node):
                 self.get_logger().warn(f"[Watchdog] Timeout ({delta:.1f}s).")
                 if self.current_target_grid:
                     self.blacklist_cells.add(self.current_target_grid)
-                self.force_long_range = False
+                self.force_long_range = True
                 try:
                     self._goal_handle.cancel_goal_async()
                 except:
@@ -562,11 +564,15 @@ class FrontierExplorer(Node):
                 continue
             mx, my = map_to_world(cx, cy, info)
             dist = math.hypot(mx - rx, my - ry)
+            if dist < self.min_goal_distance:
+                continue
             size = len(comp)
             if self.force_long_range:
                 score = -dist
             else:
-                score = dist - (size * 0.05)
+                score = dist - (size * 0.1)
+                if dist > 1.0:
+                    score -= 0.5
             if self.current_target_grid:
                 curr_gx, curr_gy = self.current_target_grid
                 dx_g = abs(cx - curr_gx)
