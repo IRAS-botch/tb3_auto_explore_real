@@ -1,3 +1,0 @@
-[console_scripts]
-frontier_explorer = tb3_auto_explore.frontier_explorer:main
-

@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="3">
-<name>tb3_auto_explore</name>
+<name>tb3_auto_explore_real</name>
 <version>0.0.1</version>
 <description>Simple frontier-based autonomous exploration for TurtleBot3 + Nav2 + SLAM</description>
 <maintainer email="you@example.com">Your Name</maintainer>

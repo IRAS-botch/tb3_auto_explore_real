@@ -28,7 +28,7 @@ BACKUP_DURATION = abs(BACKUP_DISTANCE / BACKUP_SPEED)
 CENTER_MARGIN = 60
 
 # [설정] 저장 파일 경로 & 오프셋 거리
-SAVE_FILE_NAME = "/home/ho/tb3_auto_explore/found_cubes.txt"
+SAVE_FILE_NAME = "/home/ubuntu/tb3_auto_explore_real/found_cubes.txt"
 CUBE_OFFSET_DIST = 0.20  # 로봇 중심에서 큐브까지의 거리 (m)
 
 # ==========================================
@@ -73,7 +73,9 @@ def rect_iou(a, b):
 class ImageViewer(Node):
     def __init__(self):
         super().__init__("image_viewer")
-        self.model = YOLO("/home/ho/tb3_auto_explore/yolo/YOLOCUBE_ClassModified.pt")
+        self.model = YOLO(
+            "/home/ubuntu/tb3_auto_explore_real/yolo/YOLOCUBE_ClassModified.pt"
+        )
 
         self.sub = self.create_subscription(
             Image, "/rgb", self.callback, qos_profile_sensor_data

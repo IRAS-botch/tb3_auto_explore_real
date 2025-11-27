@@ -2,7 +2,7 @@ from setuptools import setup
 import os
 from glob import glob
 
-package_name = "tb3_auto_explore"
+package_name = "tb3_auto_explore_real"
 
 setup(
     name=package_name,
@@ -15,8 +15,6 @@ setup(
         ("share/" + package_name + "/launch", glob("launch/*.launch.py")),
         # [수정] ★ 중요: param 폴더의 burger.yaml 설치 (이게 있어야 런치 파일이 읽음)
         ("share/" + package_name + "/param", glob("param/*.yaml")),
-        # [수정] config 폴더의 slam 설정 파일 설치
-        ("share/" + package_name + "/config", glob("config/*.yaml")),
     ],
     install_requires=["setuptools"],
     zip_safe=True,
@@ -27,7 +25,7 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "frontier_explorer = tb3_auto_explore.frontier_explorer:main",
+            "frontier_explorer = tb3_auto_explore_real.frontier_explorer:main",
         ],
     },
 )
