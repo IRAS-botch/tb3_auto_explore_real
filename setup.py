@@ -15,6 +15,8 @@ setup(
         ("share/" + package_name + "/launch", glob("launch/*.launch.py")),
         # [수정] ★ 중요: param 폴더의 burger.yaml 설치 (이게 있어야 런치 파일이 읽음)
         ("share/" + package_name + "/param", glob("param/*.yaml")),
+        # YOLO 스크립트와 모델 파일도 설치해 런치 파일에서 경로를 조회할 수 있도록 한다.
+        ("share/" + package_name + "/yolo", glob("yolo/*")),
     ],
     install_requires=["setuptools"],
     zip_safe=True,
