@@ -85,9 +85,9 @@ def generate_launch_description():
         parameters=[{"use_sim_time": use_sim_time}],
     )
 
-    # === 7. YOLO Image Topic 실행 (Remote PC에서 실행 가정) ===
-    # 주의: 이 경로는 Remote PC에 실제로 존재해야 합니다.
-    yolo_script_path = "/home/ubuntu/tb3_auto_explore_real/yolo/image_topic.py"
+    # === 7. YOLO Image Topic 실행 ===
+    # 설치된 패키지 공유 디렉터리에서 스크립트 경로를 조회하여 하드코딩 경로 문제를 방지한다.
+    yolo_script_path = os.path.join(tb3_auto_dir, "yolo", "image_topic.py")
 
     yolo_node = ExecuteProcess(cmd=["python3", yolo_script_path], output="screen")
 
