@@ -18,7 +18,10 @@ setup(
         # YOLO 스크립트와 모델 파일도 설치해 런치 파일에서 경로를 조회할 수 있도록 한다.
         ("share/" + package_name + "/yolo", glob("yolo/*")),
     ],
-    install_requires=["setuptools"],
+    install_requires=[
+        "setuptools",
+        "ultralytics>=8.2.0",
+    ],
     zip_safe=True,
     maintainer="Your Name",
     maintainer_email="you@example.com",
