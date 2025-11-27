@@ -194,8 +194,8 @@ local_costmap:
       robot_base_frame: base_link
       use_sim_time: False
       rolling_window: true
-      width: 3.0
-      height: 3.0
+      width: 3
+      height: 3
       resolution: 0.03
       robot_radius: 0.11
       plugins: ["obstacle_layer", "voxel_layer", "inflation_layer"]
@@ -257,8 +257,8 @@ global_costmap:
       # 이동해도 센서 원점이 지도 영역 밖으로 판단되는 문제가 있었음. 롤링 윈도우와
       # 충분한 지도 크기를 명시해 로봇을 항상 지도 중앙에 두도록 조정한다.
       rolling_window: true
-      width: 10.0
-      height: 10.0
+      width: 10
+      height: 10
       origin_x: -5.0
       origin_y: -5.0
       track_unknown_space: true
