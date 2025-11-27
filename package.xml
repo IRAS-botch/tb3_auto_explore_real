@@ -17,6 +17,7 @@
 <exec_depend>tf2_ros</exec_depend>
 <exec_depend>tf_transformations</exec_depend>
 <exec_depend>builtin_interfaces</exec_depend>
+<exec_depend>ultralytics</exec_depend>
 
 
 <!-- Nav2 / SLAM은 별도 패키지에서 런치 포함 -->
